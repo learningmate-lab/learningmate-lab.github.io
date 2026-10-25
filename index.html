@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>러닝메이트 실습실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<style>
+/* 과목별 연습 사이트로 가는 첫 화면 — sites.json 에서 목록을 읽어 자동으로 그림 */
+:root { color-scheme: light; --bg: #f4f5f2; --card: #ffffff; --line: #e1e1dc; --fg: #121212; --mut: #6b6a65; --acc: #232f3e; --hl: #ff9900;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948; --ui: "Noto Sans KR", system-ui, sans-serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; --bg: #121211; --card: #1c1c1b; --line: #33332f; --fg: #f0efec; --mut: #a3a29a; --acc: #f0efec; --hl: #ffb84d;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; } }
+:root[data-theme="dark"] { color-scheme: dark; --bg: #121211; --card: #1c1c1b; --line: #33332f; --fg: #f0efec; --mut: #a3a29a; --acc: #f0efec; --hl: #ffb84d;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; }
+* { box-sizing: border-box; } html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--ui); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 48px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { margin: 0; font-size: 12.5px; font-weight: 800; letter-spacing: .6px; color: var(--mut); }
+h1 { margin: 4px 0 0; font-size: 32px; letter-spacing: -.5px; text-wrap: balance; }
+.sub { margin: 8px 0 0; color: var(--mut); max-width: 60ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 28px; }
+a.site { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; border-top: 4px solid var(--c); transition: transform .12s, box-shadow .12s; }
+a.site:hover { transform: translateY(-2px); box-shadow: 0 8px 22px #0001; }
+a.site:focus-visible { outline: 2px solid var(--c); outline-offset: 3px; }
+.subj { font-size: 12.5px; font-weight: 800; color: var(--mut); }
+.site h2 { margin: 0; font-size: 18px; }
+.site p { margin: 0; color: var(--mut); font-size: 14px; }
+.go { margin-top: 8px; font-weight: 700; font-size: 14px; }
+.foot { margin-top: 30px; font-size: 13px; color: var(--mut); }
+@media (prefers-reduced-motion: reduce) { a.site { transition: none; } a.site:hover { transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">LEARNINGMATE LAB</p>
+  <h1>러닝메이트 시험 대비 실습실</h1>
+  <p class="sub">과목별 연습 사이트예요. 설치 없이 브라우저에서 바로 풀고, 진행 기록은 각자 브라우저에 저장돼요.</p>
+  <div class="grid" id="grid"></div>
+  <p class="foot">러닝메이트 학습 지원 · 문제와 화면은 수업 자료를 바탕으로 만든 연습용이에요.</p>
+</div>
+<script>
+fetch('sites.json', { cache: 'no-store' }).then(r => r.json()).then(cfg => {
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  document.getElementById('grid').innerHTML = cfg.sites.map((s, i) => `<a class="site" href="${esc(s.url)}" style="--c:var(--s${(i % 8) + 1})"><span class="subj">${esc(s.subject || '')}</span><h2>${esc(s.name)}</h2><p>${esc(s.desc || '')}</p><span class="go">열기 →</span></a>`).join('');
+}).catch(() => { document.getElementById('grid').textContent = '목록을 불러오지 못했어요.'; });
+</script>
+</body>
+</html>
