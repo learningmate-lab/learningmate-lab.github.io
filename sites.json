@@ -29,9 +29,9 @@
       "id": "ds-list-lab",
       "name": "자료구조 코딩테스트 연습실",
       "subject": "자료구조",
-      "desc": "프로그래머스식 화면 · Python 58문제(재귀 · 성능 · 파이썬 · 리스트 · 연결 리스트 · 스택) · 함수형/입출력형 · 모의시험",
+      "desc": "프로그래머스식 화면 · Python 68문제(실습 코드 직접 구현 · 재귀 · 성능 · 리스트 · 연결 리스트 · 스택) · 함수형/입출력형 · 모의시험 · 그림으로 보는 개념 정리",
       "url": "https://learningmate-lab.github.io/ds-list-lab/",
-      "events": [{ "key": "run", "label": "코드 실행" }, { "key": "submit", "label": "제출 후 채점" }, { "key": "mock", "label": "모의시험 시작" }]
+      "events": [{ "key": "run", "label": "코드 실행" }, { "key": "submit", "label": "제출 후 채점" }, { "key": "mock", "label": "모의시험 시작" }, { "key": "concept", "label": "개념 정리 열람" }]
     }
   ]
 }
