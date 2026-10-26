@@ -13,9 +13,9 @@
       "id": "react-exam-lab",
       "name": "React 중간고사 연습실",
       "subject": "React",
-      "desc": "필기 CBT 66문항 + VS Code 화면 실기 6문제 자동 채점",
+      "desc": "필기 대비 · 이해/코드리뷰/코드 작성/서술형 100문항 + 120분 모의고사",
       "url": "https://learningmate-lab.github.io/react-exam-lab/",
-      "events": [{ "key": "quiz", "label": "필기 정답 확인" }, { "key": "grade", "label": "실기 채점" }, { "key": "mock", "label": "모의고사 시작" }]
+      "events": [{ "key": "quiz", "label": "문제 채점" }, { "key": "mock", "label": "모의고사 시작" }]
     },
     {
       "id": "cloud-cbt",
