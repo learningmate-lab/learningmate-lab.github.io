@@ -214,14 +214,16 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
 
   /* ---------- 데이터 ---------- */
   const API = 'https://abacus.jasoncameron.dev/get/';
-  let CFG = null, RANGE = st.get('range', 7), cache = st.get('cache', {}), V = {}, gen = 0;
+  let CFG = null, RANGE = st.get('range', 7), cache = st.get('cache', {}), V = st.get('lastV', {}), gen = 0;   // V: 마지막으로 받은 값부터 보여주고 새 값으로 덮어씀
   const dayKey = d => '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
   const days = n => { const out = [], t = new Date(); t.setHours(12); for (let i = n - 1; i >= 0; i--) { const d = new Date(t); d.setDate(t.getDate() - i); out.push(dayKey(d)); } return out; };
   let today = dayKey(new Date());
   const color = i => `var(--s${(i % 8) + 1})`;
 
-  // 카운터 서비스: IP 당 10초에 30번 → 0.36초 간격으로 한 줄, 429 면 10초 쉬고 다시
-  let queue = [], running = false, cnt = { all: 0, done: 0 };
+  // 카운터 서비스: IP 당 10초에 30번 (같은 IP에서 연 실습 사이트 기록도 함께 셈) → 10.5초에 20번까지만.
+  // 429 응답에는 CORS 헤더가 없어 브라우저에선 그냥 네트워크 오류로 보임 → 오류는 모두 '잠깐 쉬고 다시'로 처리.
+  // 끝내 못 받으면 0 이 아니라 null → 화면은 마지막으로 받은 값을 그대로 유지.
+  let queue = [], running = false, cnt = { all: 0, done: 0 }, failed = 0;
   function get(key, myGen) {
     const past = /\.(\d{8})$/.test(key) && key.slice(-8) < today;
     if (past && key in cache) return Promise.resolve(cache[key]);
@@ -232,7 +234,7 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
   let inflight = 0;
   function pump() {
     const now = Date.now(); while (sent.length && now - sent[0] > 10500) sent.shift();
-    while (queue.length && sent.length + inflight < 28) {
+    while (queue.length && sent.length + inflight < 20) {
       const it = queue.shift();
       if (it.gen !== gen) { cnt.done++; it.res(null); continue; }
       sent.push(Date.now()); inflight++;
@@ -242,8 +244,8 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
         cnt.done++; it.res(v);
       }).catch(err => {
         it.tries++;
-        if (it.tries < 5) { if (err === 429) { for (let k = 0; k < 28; k++) sent.push(Date.now()); } queue.push(it); }
-        else { cnt.done++; it.res(0); }
+        if (it.tries < 8) { for (let k = 0; k < 20; k++) sent.push(Date.now()); queue.push(it); }   // 한 창(10.5초) 통째로 쉬기
+        else { cnt.done++; failed++; it.res(null); }
       }).then(() => { inflight--; status(); });
     }
     status();
@@ -260,7 +262,7 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
 
   async function load() {
     const my = ++gen; today = dayKey(new Date());
-    queue = []; cnt = { all: 0, done: 0 };
+    queue = []; cnt = { all: 0, done: 0 }; failed = 0;
     const ds = days(RANGE);
     $('t-ruv-k').textContent = `최근 ${RANGE}일 방문자`;
     drawLegend();
@@ -283,13 +285,14 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
     }));
     await Promise.all(P); if (my !== gen) return; render(); phase = '지난 기록 받는 중';
     await Promise.all(H); if (my !== gen) return; st.set('cache', cache); render();
-    $('stxt').textContent = '최신 · ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + ' 기준 · 2분마다 오늘 숫자 자동 갱신';
+    st.set('lastV', V);
+    $('stxt').textContent = (failed ? `일부(${failed}개)는 못 받아서 마지막 값 표시 · ` : '최신 · ') + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + ' 기준 · 2분마다 오늘 숫자 자동 갱신';
     status();
   }
   // 2분마다 오늘 숫자만 다시 (탭이 보일 때)
   setInterval(() => { if (!document.hidden && CFG && cnt.done >= cnt.all) refreshToday(); }, 120000);
   async function refreshToday() {
-    const my = gen; phase = '오늘 숫자 갱신 중';
+    const my = gen; phase = '오늘 숫자 갱신 중'; failed = 0;
     if (dayKey(new Date()) !== today) { load(); return; }
     const P = [];
     CFG.sites.forEach(s => {
@@ -298,7 +301,8 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
       P.push(get(`${s.id}.uv.total`, my).then(v => { if (v != null) V[s.id].tuv = v; }));
     });
     await Promise.all(P); render();
-    $('stxt').textContent = '최신 · ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + ' 기준 · 2분마다 오늘 숫자 자동 갱신'; status();
+    st.set('lastV', V);
+    $('stxt').textContent = (failed ? `일부(${failed}개)는 못 받아서 마지막 값 표시 · ` : '최신 · ') + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + ' 기준 · 2분마다 오늘 숫자 자동 갱신'; status();
   }
   let rT = 0; function renderSoon() { if (!rT) rT = setTimeout(() => { rT = 0; render(); }, 300); }
 
