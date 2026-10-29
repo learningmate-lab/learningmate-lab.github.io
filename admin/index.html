@@ -223,7 +223,7 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
   // 카운터 서비스: IP 당 10초에 30번 (같은 IP에서 연 실습 사이트 기록도 함께 셈) → 10.5초에 20번까지만.
   // 429 응답에는 CORS 헤더가 없어 브라우저에선 그냥 네트워크 오류로 보임 → 오류는 모두 '잠깐 쉬고 다시'로 처리.
   // 끝내 못 받으면 0 이 아니라 null → 화면은 마지막으로 받은 값을 그대로 유지.
-  let queue = [], running = false, cnt = { all: 0, done: 0 }, failed = 0;
+  let queue = [], running = false, cnt = { all: 0, done: 0 }, failed = 0, LIMIT = 28;   // 처음엔 한도 가까이, 한 번 거절되면 18로 낮춤
   function get(key, myGen) {
     const past = /\.(\d{8})$/.test(key) && key.slice(-8) < today;
     if (past && key in cache) return Promise.resolve(cache[key]);
@@ -234,7 +234,7 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
   let inflight = 0;
   function pump() {
     const now = Date.now(); while (sent.length && now - sent[0] > 10500) sent.shift();
-    while (queue.length && sent.length + inflight < 20) {
+    while (queue.length && sent.length + inflight < LIMIT) {
       const it = queue.shift();
       if (it.gen !== gen) { cnt.done++; it.res(null); continue; }
       sent.push(Date.now()); inflight++;
@@ -244,7 +244,7 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
         cnt.done++; it.res(v);
       }).catch(err => {
         it.tries++;
-        if (it.tries < 8) { for (let k = 0; k < 20; k++) sent.push(Date.now()); queue.push(it); }   // 한 창(10.5초) 통째로 쉬기
+        if (it.tries < 8) { LIMIT = 18; for (let k = 0; k < 30; k++) sent.push(Date.now()); queue.unshift(it); }   // 한 창(10.5초) 통째로 쉬기
         else { cnt.done++; failed++; it.res(null); }
       }).then(() => { inflight--; status(); });
     }
@@ -266,18 +266,23 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
     const ds = days(RANGE);
     $('t-ruv-k').textContent = `최근 ${RANGE}일 방문자`;
     drawLegend();
-    CFG.sites.forEach(s => { V[s.id] = V[s.id] || { uv: {}, pv: {}, ev: {} }; });
+    CFG.sites.forEach(s => { V[s.id] = V[s.id] || { uv: {}, pv: {}, ev: {} }; ['uv', 'pv', 'ev'].forEach(k => { V[s.id][k] = V[s.id][k] || {}; }); });
+    // 지난번 값으로 바로 그리고(어제 받은 '오늘' 값은 버림), 새 숫자가 올 때마다 바꿔 그림
+    CFG.sites.forEach(s => { Object.keys(V[s.id].uv).concat(Object.keys(V[s.id].pv || {})).forEach(d => { if (d > today) { delete V[s.id].uv[d]; delete V[s.id].pv[d]; } }); });
+    if (CFG.sites.some(s => V[s.id].tuv != null)) render();
     phase = '오늘 숫자 받는 중';
-    const P = [];
-    CFG.sites.forEach(s => {
-      P.push(get(`${s.id}.uv.${today}`, my).then(v => { if (v != null) V[s.id].uv[today] = v; }));
-      P.push(get(`${s.id}.pv.${today}`, my).then(v => { if (v != null) V[s.id].pv[today] = v; }));
-      P.push(get(`${s.id}.uv.total`, my).then(v => { if (v != null) V[s.id].tuv = v; }));
-      P.push(get(`${s.id}.pv.total`, my).then(v => { if (v != null) V[s.id].tpv = v; }));
-      (s.events || []).forEach(e => {
-        P.push(get(`${s.id}.ev.${e.key}.total`, my).then(v => { if (v != null) (V[s.id].ev[e.key] = V[s.id].ev[e.key] || {}).total = v; }));
-      });
+    const P = [], set = (fn) => v => { if (v != null) { fn(v); renderSoon(); } };
+    CFG.sites.forEach(s => {   // 1순위: 오늘 방문자·페이지뷰
+      P.push(get(`${s.id}.uv.${today}`, my).then(set(v => V[s.id].uv[today] = v)));
+      P.push(get(`${s.id}.pv.${today}`, my).then(set(v => V[s.id].pv[today] = v)));
     });
+    CFG.sites.forEach(s => {   // 2순위: 누적
+      P.push(get(`${s.id}.uv.total`, my).then(set(v => V[s.id].tuv = v)));
+      P.push(get(`${s.id}.pv.total`, my).then(set(v => V[s.id].tpv = v)));
+    });
+    CFG.sites.forEach(s => (s.events || []).forEach(e => {   // 3순위: 활동 횟수
+      P.push(get(`${s.id}.ev.${e.key}.total`, my).then(set(v => (V[s.id].ev[e.key] = V[s.id].ev[e.key] || {}).total = v)));
+    }));
     // 지난 기록: 방문자 수만, 최근 날짜부터 (받은 날짜는 저장돼 있어 바로 채워짐)
     const H = [];
     ds.slice(0, -1).reverse().forEach(d => CFG.sites.forEach(s => {
