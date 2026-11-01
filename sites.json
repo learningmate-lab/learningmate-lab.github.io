@@ -27,9 +27,9 @@
     },
     {
       "id": "embedded-cbt",
-      "name": "임베디드 CBT",
+      "name": "임베디드 랩",
       "subject": "임베디드 시스템",
-      "desc": "차량용 임베디드(S32K312) 1~6장 · 268문항(객관식 · 결과+원인 · 단답) · 개념 카드 67개 · 25문항 모의고사",
+      "desc": "차량용 임베디드(S32K312) 1~6장 · 보드 화면 · 268문항(코드 읽기 · 결과+원인 · 단답) · 실습 도구 7개(비트 · SIUL2 주소 · UART · I2C · IRQ · ADC · IPL↔MCAL) · 모의고사",
       "url": "https://learningmate-lab.github.io/embedded-cbt/",
       "events": [{ "key": "check", "label": "문제 정답 확인" }, { "key": "concept", "label": "개념 정리 열람" }, { "key": "mock", "label": "모의고사 제출" }]
     },
