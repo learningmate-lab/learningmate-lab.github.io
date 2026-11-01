@@ -26,6 +26,14 @@
       "events": [{ "key": "check", "label": "문제 정답 확인" }, { "key": "concept", "label": "개념 정리 열람" }, { "key": "mock", "label": "모의고사 제출" }]
     },
     {
+      "id": "embedded-cbt",
+      "name": "임베디드 CBT",
+      "subject": "임베디드 시스템",
+      "desc": "차량용 임베디드(S32K312) 1~6장 · 268문항(객관식 · 결과+원인 · 단답) · 개념 카드 67개 · 25문항 모의고사",
+      "url": "https://learningmate-lab.github.io/embedded-cbt/",
+      "events": [{ "key": "check", "label": "문제 정답 확인" }, { "key": "concept", "label": "개념 정리 열람" }, { "key": "mock", "label": "모의고사 제출" }]
+    },
+    {
       "id": "ds-list-lab",
       "name": "자료구조 중간고사 필기 연습실",
       "subject": "자료구조",
