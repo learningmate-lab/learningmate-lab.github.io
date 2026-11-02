@@ -214,6 +214,12 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
 
   /* ---------- 데이터 ---------- */
   const API = 'https://abacus.jasoncameron.dev/get/';
+  // 예전 버전이 서버 오류를 0으로 저장해 둔 값이 있을 수 있어, 0인 지난 기록·누적값은 한 번 버리고 다시 받음
+  if (!st.get('fix0', 0)) {
+    const c = st.get('cache', {}); Object.keys(c).forEach(k => { if (!c[k]) delete c[k]; }); st.set('cache', c);
+    const lv = st.get('lastV', {}); Object.values(lv).forEach(x => { if (!x) return; if (!x.tuv) delete x.tuv; if (!x.tpv) delete x.tpv; Object.values(x.ev || {}).forEach(e => { if (e && !e.total) delete e.total; }); }); st.set('lastV', lv);
+    st.set('fix0', 1);
+  }
   let CFG = null, RANGE = st.get('range', 7), cache = st.get('cache', {}), V = st.get('lastV', {}), gen = 0;   // V: 마지막으로 받은 값부터 보여주고 새 값으로 덮어씀
   const dayKey = d => '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
   const days = n => { const out = [], t = new Date(); t.setHours(12); for (let i = n - 1; i >= 0; i--) { const d = new Date(t); d.setDate(t.getDate() - i); out.push(dayKey(d)); } return out; };
@@ -238,8 +244,11 @@ details.help summary { cursor: pointer; font-weight: 800; font-size: 14px; }
       const it = queue.shift();
       if (it.gen !== gen) { cnt.done++; it.res(null); continue; }
       sent.push(Date.now()); inflight++;
-      fetch(API + CFG.namespace + '/' + it.key, { cache: 'no-store' }).then(r => { if (r.status === 429) throw 429; return r.json(); }).then(j => {
-        const v = j && typeof j.value === 'number' ? j.value : 0;
+      // 404(키 없음)만 진짜 0. 500·타임아웃·이상한 응답은 0으로 쓰지 않고 다시 받음
+      const opt = { cache: 'no-store' }; try { if (AbortSignal.timeout) opt.signal = AbortSignal.timeout(15000); } catch (e) { }
+      fetch(API + CFG.namespace + '/' + it.key, opt).then(r => { if (r.status === 404) return { value: 0 }; if (!r.ok) throw r.status; return r.json(); }).then(j => {
+        if (!j || typeof j.value !== 'number') throw 'bad';
+        const v = j.value;
         if (it.past) { cache[it.key] = v; saveCacheSoon(); }
         cnt.done++; it.res(v);
       }).catch(err => {
